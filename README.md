@@ -4,6 +4,8 @@ AI-powered presentation script generator and voice synthesizer for academic rese
 
 Upload your slides, generate natural presentation scripts with AI, and create audio files — all running locally on your machine.
 
+![Screenshot](docs/images/screenshot.png)
+
 ## Features
 
 - **Slide Analysis** — Automatically analyzes slide images using a multimodal LLM
