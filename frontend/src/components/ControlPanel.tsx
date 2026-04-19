@@ -58,7 +58,7 @@ export default function ControlPanel({
           id: projectId,
           filename: data.metadata.original_filename,
           totalSlides: data.metadata.total_slides,
-          fileSize: data.metadata.file_size,
+          fileSize: data.metadata.file_size || 0,
           fileType: data.metadata.file_type,
           uploadTimestamp: data.metadata.created_at
         }
@@ -387,10 +387,12 @@ export default function ControlPanel({
                     <span>📊</span>
                     <span>{currentProject.totalSlides} slides</span>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <span>💾</span>
-                    <span>{(currentProject.fileSize / (1024 * 1024)).toFixed(1)} MB</span>
-                  </div>
+                  {currentProject.fileSize > 0 && (
+                    <div className="flex items-center space-x-1">
+                      <span>💾</span>
+                      <span>{(currentProject.fileSize / (1024 * 1024)).toFixed(1)} MB</span>
+                    </div>
+                  )}
                   <div className="flex items-center space-x-1">
                     <span>✅</span>
                     <span>Ready to use</span>

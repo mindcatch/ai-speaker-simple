@@ -88,6 +88,7 @@ class FileService:
                 "project_id": project_id,
                 "original_filename": filename,
                 "file_type": file_extension,
+                "file_size": file_size,
                 "created_at": datetime.now().isoformat(),
                 "total_slides": len(slide_images),
                 "slide_images": slide_images,
