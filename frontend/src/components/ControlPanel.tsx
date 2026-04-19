@@ -130,7 +130,7 @@ export default function ControlPanel({
   const handleFileUpload = async (files: File[]) => {
     setIsUploading(true)
     setUploadProgress(0)
-    setAnalysisStatus('Uploading files...')
+    setAnalysisStatus('Uploading...')
 
     const sessionId = Math.random().toString(36).substring(2, 15)
 
@@ -139,36 +139,59 @@ export default function ControlPanel({
       const formData = new FormData()
       formData.append('files', file)
 
-      setUploadProgress(30)
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000)
-      const uploadResponse = await fetch(`${API_BASE}/api/upload/file/${sessionId}`, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
+      // Phase 1: Upload with real progress tracking (0-70%)
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 70)
+            setUploadProgress(percent)
+            if (percent < 70) {
+              setAnalysisStatus(`Uploading... ${Math.round(e.loaded / 1024 / 1024 * 10) / 10}MB / ${Math.round(e.total / 1024 / 1024 * 10) / 10}MB`)
+            }
+          }
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText))
+          } else {
+            try {
+              const err = JSON.parse(xhr.responseText)
+              reject(new Error(err.detail || 'Upload failed'))
+            } catch {
+              reject(new Error('Upload failed'))
+            }
+          }
+        }
+
+        xhr.onerror = () => reject(new Error('Network error'))
+        xhr.ontimeout = () => reject(new Error('Upload timed out'))
+        xhr.timeout = 5 * 60 * 1000
+
+        xhr.open('POST', `${API_BASE}/api/upload/file/${sessionId}`)
+        xhr.send(formData)
       })
-      clearTimeout(timeoutId)
 
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({ detail: 'Upload failed' }))
-        throw new Error(errorData.detail || 'Upload failed')
-      }
+      // Phase 2: Server processing (70-85%)
+      setUploadProgress(75)
+      setAnalysisStatus('Processing slides...')
 
-      const uploadResult = await uploadResponse.json()
-      setUploadProgress(60)
-      setAnalysisStatus('Processing complete!')
+      // Phase 3: Loading project (85-100%)
+      setUploadProgress(85)
+      setAnalysisStatus('Loading project...')
+      await fetchExistingProjects()
+      await handleLoadProject(uploadResult.file_id)
 
       setUploadProgress(100)
       setAnalysisStatus('Upload complete!')
-
-      await fetchExistingProjects()
-      await handleLoadProject(uploadResult.file_id)
 
       setTimeout(() => {
         setIsUploading(false)
         setUploadProgress(0)
         setAnalysisStatus('')
-      }, 3000)
+      }, 2000)
 
     } catch (error) {
       console.error('Upload/Analysis error:', error)
