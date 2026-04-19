@@ -8,3 +8,4 @@ data/
 backend/data/
 .DS_Store
 *.log
+DEVELOPMENT_LOG.md
