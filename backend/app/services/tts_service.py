@@ -70,10 +70,28 @@ def _preprocess_text(text: str) -> str:
     return text
 
 
+def _detect_language(text: str) -> str:
+    """Detect language from script text by counting CJK characters"""
+    korean = sum(1 for c in text if '가' <= c <= '힣')
+    japanese = sum(1 for c in text if '぀' <= c <= 'ゟ' or '゠' <= c <= 'ヿ')
+    chinese_or_kanji = sum(1 for c in text if '一' <= c <= '鿿')
+
+    if korean > 5:
+        return 'ko'
+    if japanese > 5:
+        return 'ja'
+    if chinese_or_kanji > 10:
+        return 'ja'  # Treat as Japanese (kanji); use 'zh-CN' if pure Chinese is needed
+    return 'en'
+
+
 def _generate_gtts(text: str, voice: str, output_path: Path) -> bool:
-    """Generate audio using Google TTS"""
+    """Generate audio using Google TTS with auto language detection"""
     config = get_voice_config(voice)
-    tts = gTTS(text=text, lang='en', tld=config['tld'], slow=config['slow'])
+    lang = _detect_language(text)
+    # Voice region (tld) only applies to English; other languages use default
+    tld = config['tld'] if lang == 'en' else 'com'
+    tts = gTTS(text=text, lang=lang, tld=tld, slow=config['slow'])
     output_path.parent.mkdir(parents=True, exist_ok=True)
     tts.save(str(output_path))
     return True
